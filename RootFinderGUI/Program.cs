@@ -23,9 +23,9 @@ namespace RootFinderGUI {
         /// </summary>
         [STAThread]
         private static void Main() {
-            //Application.EnableVisualStyles();
-            //Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new Form1());
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1());
 
             //LibraryBridge.SomeFunction(@"Hello World!");
 
@@ -42,7 +42,7 @@ namespace RootFinderGUI {
             }
             */
             
-            int arraySize = LibraryBridge.GetArraySize();
+            /*int arraySize = LibraryBridge.GetArraySize();
             StepOutput[] theArray = new StepOutput[arraySize];
 
             LibraryBridge.GetStepOutputs(theArray);
@@ -59,6 +59,7 @@ namespace RootFinderGUI {
                     theArray[i].root
                     );
             }
+            */
         }
     }
 }
