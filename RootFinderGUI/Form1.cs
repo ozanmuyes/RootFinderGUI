@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using DynamicExpresso;
 using ZedGraph;
@@ -11,6 +12,7 @@ namespace RootFinderGUI {
         private Interpreter _theInterpreter;
         private double[] _calculatedRoots;
         private int _stepIndex;
+        private double _verticalGuideLineHeight;
 
         // To be changed in run-time
         private string _theExpression = string.Empty;
@@ -123,7 +125,61 @@ namespace RootFinderGUI {
             return (double) _theInterpreter.Eval(_theExpression, new Parameter("x", x));
         }
 
-        private void Draw(ZedGraphControl zgc, string expression, double from, double to, double step = 0.1f) {
+        private void Draw(ZedGraphControl zgc, string expression, double from, double to, double step = 0.01f) {
+            // Obtain GraphPane from ZedGraphControl
+            GraphPane pane = zgc.GraphPane;
+
+            int compileResult = LibraryBridge.CompileExpression(expression);
+
+            if (0 != compileResult) {
+                MessageBox.Show(string.Format(@"Expression error on col {0}", compileResult), @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                tbExpression.Focus();
+
+                return;
+            }
+
+            // from MUST be less than to, ensure that
+            if (from.CompareTo(to) > 1) {
+                double temp = from;
+                from = to;
+                to = temp;
+            }
+
+            double startValue = from,
+                endValue = to;
+
+            // Go to the library and get points
+            int pointsCount = LibraryBridge.CalculatePointsCount(startValue, endValue, step);
+            double[] points = new double[pointsCount];
+            IntPtr pointsPtr = LibraryBridge.GetFunctionPoints(startValue, endValue, step);
+            Marshal.Copy(pointsPtr, points, 0, pointsCount);
+
+            // Create the list...
+            PointPairList list1 = new PointPairList();
+            // ... and add points to the list.
+            // ReSharper disable once TooWideLocalVariableScope
+            double thePoint;
+            for (int i = 0; i < pointsCount; i++) {
+                thePoint = startValue + (step * i);
+
+                if (thePoint > endValue) {
+                    thePoint = endValue;
+                }
+
+                list1.Add(thePoint, points[i]);
+                Console.WriteLine(@"{0} {1}", thePoint, points[i]);
+            }
+
+            // Add the list to GraphPane
+            pane.AddCurve(expression, list1, Color.Blue, SymbolType.None);
+
+            // Finally make ZedGraphControl to re-draw itself
+            zgc.AxisChange();
+            zgc.Invalidate();
+        }
+
+        private void Draw2(ZedGraphControl zgc, string expression, double from, double to, double step = 0.1f) {
             // Obtain GraphPane from ZedGraphControl
             GraphPane pane = zgc.GraphPane;
 
@@ -155,17 +211,26 @@ namespace RootFinderGUI {
             Draw(
                 zed,
                 tbExpression.Text,
-                double.Parse(nmFrom.Value.ToString(CultureInfo.InvariantCulture)),
-                double.Parse(nmTo.Value.ToString(CultureInfo.InvariantCulture))
+                double.Parse(nmFrom.Text.ToString(CultureInfo.InvariantCulture)),
+                double.Parse(nmTo.Text.ToString(CultureInfo.InvariantCulture)),
+                double.Parse(nmStep.Text.ToString(CultureInfo.InvariantCulture))
                 );
 
             _theLine = DrawVerticalGuideLine(_calculatedRoots[0]);
         }
 
         // Draws vertical guide line on x-axis on point given parameter x
-        private LineItem DrawVerticalGuideLine(double x, double yMin = -1d, double yMax = 1d) {
+        private LineItem DrawVerticalGuideLine(double x, double yMin = double.NaN, double yMax = double.NaN) {
             // Get Pane reference from ZedGraphControl
             GraphPane thePane = zed.GraphPane;
+
+            _verticalGuideLineHeight = zed.GraphPane.YAxis.Scale.MajorStep * 2;
+            if (double.IsNaN(yMin)) {
+                yMin = _verticalGuideLineHeight * -1;
+            }
+            if (double.IsNaN(yMax)) {
+                yMax = _verticalGuideLineHeight;
+            }
 
             LineItem newLine = new LineItem(string.Empty, new[] {x, x}, new[] {yMin, yMax}, Color.Black, SymbolType.None) {
                 Line = {
@@ -187,13 +252,21 @@ namespace RootFinderGUI {
         }
 
         // Updates given vertical guide line
-        private void UpdateVerticalGuideLine(LineItem theLine, double x, double yMin = -1d, double yMax = 1d) {
+        private void UpdateVerticalGuideLine(LineItem theLine, double x, double yMin = double.NaN, double yMax = double.NaN) {
             if (null == theLine) {
                 throw new NullReferenceException("Line to update is uninitialized. Please use DrawVerticalGuideLine method instead.");
             }
 
             // Get Pane reference from ZedGraphControl
             GraphPane thePane = zed.GraphPane;
+
+            _verticalGuideLineHeight = zed.GraphPane.YAxis.Scale.MajorStep * 2;
+            if (double.IsNaN(yMin)) {
+                yMin = _verticalGuideLineHeight * -1;
+            }
+            if (double.IsNaN(yMax)) {
+                yMax = _verticalGuideLineHeight;
+            }
 
             // Remove the old one...
             int index = thePane.CurveList.IndexOf(theLine);
@@ -231,6 +304,8 @@ namespace RootFinderGUI {
             } else {
                 UpdateVerticalGuideLine(_theLine, _calculatedRoots[_stepIndex]);
             }
+
+            lbRoot.Text = _calculatedRoots[_stepIndex].ToString(CultureInfo.CurrentCulture);
         }
 
         private void btPreviousStep_Click(object sender, EventArgs e) {
@@ -246,6 +321,8 @@ namespace RootFinderGUI {
             } else {
                 UpdateVerticalGuideLine(_theLine, _calculatedRoots[_stepIndex]);
             }
+
+            lbRoot.Text = _calculatedRoots[_stepIndex].ToString(CultureInfo.CurrentCulture);
         }
 
         #endregion
@@ -264,6 +341,17 @@ namespace RootFinderGUI {
 
         private void zed_MouseEnter(object sender, EventArgs e) {
             zed.Focus();
+        }
+
+        private void zed_ZoomEvent(ZedGraphControl sender, ZoomState oldState, ZoomState newState) {
+            _verticalGuideLineHeight = zed.GraphPane.YAxis.Scale.MajorStep * 2;
+
+            UpdateVerticalGuideLine(
+                _theLine,
+                _theLine.Points[0].X,
+                _verticalGuideLineHeight * -1,
+                _verticalGuideLineHeight
+                );
         }
     }
 }

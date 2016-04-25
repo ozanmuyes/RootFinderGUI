@@ -27,6 +27,34 @@ namespace RootFinderGUI {
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Form1());
 
+            return;
+
+            // TODO Get expression from user
+            string expression = @"x^2-3";
+            int compileResult = LibraryBridge.CompileExpression(expression);
+
+            if (0 == compileResult) {
+                //Console.WriteLine(LibraryBridge.F(4));
+
+                // TODO Get these values from user
+                double startValue = 1f,
+                    endValue = 6.4f,
+                    step = 0.5f;
+
+                int pointsCount = LibraryBridge.CalculatePointsCount(startValue, endValue, step);
+                double[] points = new double[pointsCount];
+                IntPtr pointsPtr = LibraryBridge.GetFunctionPoints(startValue, endValue, step);
+                Marshal.Copy(pointsPtr, points, 0, pointsCount);
+
+                foreach (double point in points) {
+                    Console.WriteLine(point);
+                }
+
+                LibraryBridge.FreeCompiledExpression();
+            } else {
+                Console.WriteLine(@"Error occured on col {0} while compiling expression.", compileResult);
+            }
+
             //LibraryBridge.SomeFunction(@"Hello World!");
 
 
@@ -41,7 +69,7 @@ namespace RootFinderGUI {
                 Console.WriteLine(@"#{0} {1}", i, theArray[i]);
             }
             */
-            
+
             /*int arraySize = LibraryBridge.GetArraySize();
             StepOutput[] theArray = new StepOutput[arraySize];
 
