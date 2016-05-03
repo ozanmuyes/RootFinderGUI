@@ -73,7 +73,6 @@
             this.zed.ZoomEvent += new ZedGraph.ZedGraphControl.ZoomEventHandler(this.zed_ZoomEvent);
             this.zed.KeyDown += new System.Windows.Forms.KeyEventHandler(this.zed_KeyDown);
             this.zed.KeyUp += new System.Windows.Forms.KeyEventHandler(this.zed_KeyUp);
-            this.zed.MouseEnter += new System.EventHandler(this.zed_MouseEnter);
             // 
             // btDraw
             // 
@@ -99,9 +98,9 @@
             // 
             this.tbExpression.Location = new System.Drawing.Point(88, 12);
             this.tbExpression.Name = "tbExpression";
-            this.tbExpression.Size = new System.Drawing.Size(328, 20);
+            this.tbExpression.Size = new System.Drawing.Size(235, 20);
             this.tbExpression.TabIndex = 3;
-            this.tbExpression.Text = "x ^ 2 - 3";
+            this.tbExpression.Text = "x - 3 * cos(x) + 1";
             // 
             // label2
             // 
@@ -149,7 +148,7 @@
             this.nmFrom.Name = "nmFrom";
             this.nmFrom.Size = new System.Drawing.Size(54, 20);
             this.nmFrom.TabIndex = 6;
-            this.nmFrom.Text = "1.72";
+            this.nmFrom.Text = "-10";
             // 
             // nmTo
             // 
@@ -157,7 +156,7 @@
             this.nmTo.Name = "nmTo";
             this.nmTo.Size = new System.Drawing.Size(54, 20);
             this.nmTo.TabIndex = 6;
-            this.nmTo.Text = "1.74";
+            this.nmTo.Text = "20";
             // 
             // lbRoot
             // 
@@ -215,7 +214,7 @@
             this.Controls.Add(this.zed);
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Form1";
+            this.Text = "RootFinderGUI";
             this.ResumeLayout(false);
             this.PerformLayout();
 

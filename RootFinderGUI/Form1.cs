@@ -4,12 +4,10 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using DynamicExpresso;
 using ZedGraph;
 
 namespace RootFinderGUI {
     public partial class Form1 : Form {
-        private Interpreter _theInterpreter;
         private double[] _calculatedRoots;
         private int _stepIndex;
         private double _verticalGuideLineHeight;
@@ -20,109 +18,59 @@ namespace RootFinderGUI {
         public Form1() {
             InitializeComponent();
 
-            InitializeInterpreter();
-
             // TODO Obtain calculated roots from the dll
             _calculatedRoots = new[] {
-                1.5000000000000000d,
-                1.7500000000000000d,
-                1.6250000000000000d,
-                1.6875000000000000d,
-                1.7187500000000000d,
-                1.7343750000000000d,
-                1.7265625000000000d,
-                1.7304687500000000d,
-                1.7324218750000000d,
-                1.7314453125000000d,
-                1.7319335937500000d,
-                1.7321777343750000d,
-                1.7320556640625000d,
-                1.7319946289062500d,
-                1.7320251464843750d,
-                1.7320404052734375d,
-                1.7320480346679687d,
-                1.7320518493652344d,
-                1.7320499420166016d,
-                1.7320508956909180d,
-                1.7320504188537598d,
-                1.7320506572723389d,
-                1.7320507764816284d,
-                1.7320508360862732d,
-                1.7320508062839508d,
-                1.7320508211851120d,
-                1.7320508137345314d,
-                1.7320508100092411d,
-                1.7320508081465960d,
-                1.7320508072152734d,
-                1.7320508076809347d,
-                1.7320508074481040d,
-                1.7320508075645193d,
-                1.7320508076227270d,
-                1.7320508075936232d,
-                1.7320508075790713d,
-                1.7320508075717953d,
-                1.7320508075681573d,
-                1.7320508075699763d,
-                1.7320508075690668d,
-                1.7320508075686121d,
-                1.7320508075688394d,
-                1.7320508075689531d,
-                1.7320508075688963d,
-                1.7320508075688679d,
-                1.7320508075688821d,
-                1.7320508075688750d,
-                1.7320508075688785d,
-                1.7320508075688767d
+                -3.0000000000000000d,
+                -3.5000000000000000d,
+                -3.7500000000000000d,
+                -3.6250000000000000d,
+                -3.6875000000000000d,
+                -3.6562500000000000d,
+                -3.6406250000000000d,
+                -3.6328125000000000d,
+                -3.6367187500000000d,
+                -3.6386718750000000d,
+                -3.6376953125000000d,
+                -3.6381835937500000d,
+                -3.6379394531250000d,
+                -3.6380615234375000d,
+                -3.6380004882812500d,
+                -3.6379699707031250d,
+                -3.6379547119140625d,
+                -3.6379623413085938d,
+                -3.6379585266113281d,
+                -3.6379566192626953d,
+                -3.6379575729370117d,
+                -3.6379580497741699d,
+                -3.6379578113555908d,
+                -3.6379579305648804d,
+                -3.6379579901695251d,
+                -3.6379579603672028d,
+                -3.6379579752683640d,
+                -3.6379579678177834d,
+                -3.6379579640924931d,
+                -3.6379579659551382d,
+                -3.6379579668864608d,
+                -3.6379579673521221d,
+                -3.6379579675849527d,
+                -3.6379579674685374d,
+                -3.6379579675267451d,
+                -3.6379579675558489d,
+                -3.6379579675704008d,
+                -3.6379579675631248d,
+                -3.6379579675594869d,
+                -3.6379579675613058d,
+                -3.6379579675603964d,
+                -3.6379579675608511d,
+                -3.6379579675610785d,
+                -3.6379579675611922d,
+                -3.6379579675612490d,
+                -3.6379579675612774d,
+                -3.6379579675612916d,
+                -3.6379579675612845d,
+                -3.6379579675612810d,
+                -3.6379579675612828d
             };
-        }
-
-        private void InitializeInterpreter() {
-            // Write tinyexpr compatible functions as C# functions
-            Func<double, double> abs = Math.Abs;
-            Func<double, double> acos = Math.Acos;
-            Func<double, double> asin = Math.Asin;
-            Func<double, double> atan = Math.Atan;
-            Func<double, double> ceil = Math.Ceiling;
-            Func<double, double> cos = Math.Cos;
-            Func<double, double> cosh = Math.Cosh;
-            Func<double, double> exp = Math.Exp;
-            Func<double, double> floor = Math.Floor;
-            Func<double, double> ln = Math.Log;
-            Func<double, double> log = Math.Log10;
-            Func<double, double> sin = Math.Sin;
-            Func<double, double> sinh = Math.Sinh;
-            Func<double, double> sqrt = Math.Sqrt;
-            Func<double, double> tan = Math.Tan;
-            Func<double, double> tanh = Math.Tanh;
-            Func<double, double, double> pow = Math.Pow;
-
-            // Create the Interpreter
-            _theInterpreter = new Interpreter();
-
-            // Map written tinyexpr compatible functions to Interpreter functions
-            _theInterpreter.SetFunction("abs", abs);
-            _theInterpreter.SetFunction("acos", acos);
-            _theInterpreter.SetFunction("asin", asin);
-            _theInterpreter.SetFunction("atan", atan);
-            _theInterpreter.SetFunction("ceil", ceil);
-            _theInterpreter.SetFunction("cos", cos);
-            _theInterpreter.SetFunction("cosh", cosh);
-            _theInterpreter.SetFunction("exp", exp);
-            _theInterpreter.SetFunction("floor", floor);
-            _theInterpreter.SetFunction("ln", ln);
-            _theInterpreter.SetFunction("log", log);
-            _theInterpreter.SetFunction("sin", sin);
-            _theInterpreter.SetFunction("sinh", sinh);
-            _theInterpreter.SetFunction("sqrt", sqrt);
-            _theInterpreter.SetFunction("tan", tan);
-            _theInterpreter.SetFunction("tanh", tanh);
-            _theInterpreter.SetFunction("pow", pow);
-        }
-
-        // ReSharper disable once InconsistentNaming
-        private double f(double x) {
-            // FIX Do NOT create new Parameter object for every evaluation
-            return (double) _theInterpreter.Eval(_theExpression, new Parameter("x", x));
         }
 
         private void Draw(ZedGraphControl zgc, string expression, double from, double to, double step = 0.01f) {
@@ -168,7 +116,6 @@ namespace RootFinderGUI {
                 }
 
                 list1.Add(thePoint, points[i]);
-                Console.WriteLine(@"{0} {1}", thePoint, points[i]);
             }
 
             // Add the list to GraphPane
@@ -196,7 +143,7 @@ namespace RootFinderGUI {
             PointPairList list1 = new PointPairList();
             // ... and add points to the list.
             for (double i = from; i < to; i += step) {
-                list1.Add(i, f(i));
+                list1.Add(i, LibraryBridge.F(i));
             }
 
             // Add the list to GraphPane
@@ -344,6 +291,10 @@ namespace RootFinderGUI {
         }
 
         private void zed_ZoomEvent(ZedGraphControl sender, ZoomState oldState, ZoomState newState) {
+            if (null == _theLine) {
+                return;
+            }
+
             _verticalGuideLineHeight = zed.GraphPane.YAxis.Scale.MajorStep * 2;
 
             UpdateVerticalGuideLine(
