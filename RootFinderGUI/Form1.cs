@@ -4,23 +4,22 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using DynamicExpresso;
 using ZedGraph;
 
 namespace RootFinderGUI {
     public partial class Form1 : Form {
-        private Interpreter _theInterpreter;
         private double[] _calculatedRoots;
         private int _stepIndex;
         private double _verticalGuideLineHeight;
 
-        // To be changed in run-time
-        private string _theExpression = string.Empty;
-
         public Form1() {
             InitializeComponent();
 
-            InitializeInterpreter();
+            // Initialize ZedGraph axis
+            Console.WriteLine(zed.GraphPane.XAxis.Scale);
+            Console.WriteLine(zed.GraphPane.X2Axis.Scale);
+            Console.WriteLine(zed.GraphPane.YAxis.Scale);
+            Console.WriteLine(zed.GraphPane.Y2Axis.Scale);
 
             // TODO Obtain calculated roots from the dll
             _calculatedRoots = new[] {
@@ -76,60 +75,11 @@ namespace RootFinderGUI {
             };
         }
 
-        private void InitializeInterpreter() {
-            // Write tinyexpr compatible functions as C# functions
-            Func<double, double> abs = Math.Abs;
-            Func<double, double> acos = Math.Acos;
-            Func<double, double> asin = Math.Asin;
-            Func<double, double> atan = Math.Atan;
-            Func<double, double> ceil = Math.Ceiling;
-            Func<double, double> cos = Math.Cos;
-            Func<double, double> cosh = Math.Cosh;
-            Func<double, double> exp = Math.Exp;
-            Func<double, double> floor = Math.Floor;
-            Func<double, double> ln = Math.Log;
-            Func<double, double> log = Math.Log10;
-            Func<double, double> sin = Math.Sin;
-            Func<double, double> sinh = Math.Sinh;
-            Func<double, double> sqrt = Math.Sqrt;
-            Func<double, double> tan = Math.Tan;
-            Func<double, double> tanh = Math.Tanh;
-            Func<double, double, double> pow = Math.Pow;
-
-            // Create the Interpreter
-            _theInterpreter = new Interpreter();
-
-            // Map written tinyexpr compatible functions to Interpreter functions
-            _theInterpreter.SetFunction("abs", abs);
-            _theInterpreter.SetFunction("acos", acos);
-            _theInterpreter.SetFunction("asin", asin);
-            _theInterpreter.SetFunction("atan", atan);
-            _theInterpreter.SetFunction("ceil", ceil);
-            _theInterpreter.SetFunction("cos", cos);
-            _theInterpreter.SetFunction("cosh", cosh);
-            _theInterpreter.SetFunction("exp", exp);
-            _theInterpreter.SetFunction("floor", floor);
-            _theInterpreter.SetFunction("ln", ln);
-            _theInterpreter.SetFunction("log", log);
-            _theInterpreter.SetFunction("sin", sin);
-            _theInterpreter.SetFunction("sinh", sinh);
-            _theInterpreter.SetFunction("sqrt", sqrt);
-            _theInterpreter.SetFunction("tan", tan);
-            _theInterpreter.SetFunction("tanh", tanh);
-            _theInterpreter.SetFunction("pow", pow);
-        }
-
-        // ReSharper disable once InconsistentNaming
-        private double f(double x) {
-            // FIX Do NOT create new Parameter object for every evaluation
-            return (double) _theInterpreter.Eval(_theExpression, new Parameter("x", x));
-        }
-
         private void Draw(ZedGraphControl zgc, string expression, double from, double to, double step = 0.01f) {
             // Obtain GraphPane from ZedGraphControl
             GraphPane pane = zgc.GraphPane;
 
-            int compileResult = LibraryBridge.CompileExpression(expression);
+            int compileResult = RootFinderLibrary.CompileExpression(expression);
 
             if (0 != compileResult) {
                 MessageBox.Show(string.Format(@"Expression error on col {0}", compileResult), @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -150,9 +100,10 @@ namespace RootFinderGUI {
                 endValue = to;
 
             // Go to the library and get points
-            int pointsCount = LibraryBridge.CalculatePointsCount(startValue, endValue, step);
+            int pointsCount = RootFinderLibrary.CalculatePointsCount(startValue, endValue, step);
+Console.WriteLine(pointsCount);
             double[] points = new double[pointsCount];
-            IntPtr pointsPtr = LibraryBridge.GetFunctionPoints(startValue, endValue, step);
+            IntPtr pointsPtr = RootFinderLibrary.GetFunctionPoints(startValue, endValue, step);
             Marshal.Copy(pointsPtr, points, 0, pointsCount);
 
             // Create the list...
@@ -168,39 +119,11 @@ namespace RootFinderGUI {
                 }
 
                 list1.Add(thePoint, points[i]);
-                Console.WriteLine(@"{0} {1}", thePoint, points[i]);
+//Console.WriteLine(@"{0} {1}", thePoint, points[i]);
             }
 
             // Add the list to GraphPane
             pane.AddCurve(expression, list1, Color.Blue, SymbolType.None);
-
-            // Finally make ZedGraphControl to re-draw itself
-            zgc.AxisChange();
-            zgc.Invalidate();
-        }
-
-        private void Draw2(ZedGraphControl zgc, string expression, double from, double to, double step = 0.1f) {
-            // Obtain GraphPane from ZedGraphControl
-            GraphPane pane = zgc.GraphPane;
-
-            _theExpression = expression;
-
-            // from MUST be less than to, ensure that
-            if (from.CompareTo(to) > 1) {
-                double temp = from;
-                from = to;
-                to = temp;
-            }
-
-            // Create the list...
-            PointPairList list1 = new PointPairList();
-            // ... and add points to the list.
-            for (double i = from; i < to; i += step) {
-                list1.Add(i, f(i));
-            }
-
-            // Add the list to GraphPane
-            pane.AddCurve(_theExpression, list1, Color.Blue, SymbolType.Square);
 
             // Finally make ZedGraphControl to re-draw itself
             zgc.AxisChange();
@@ -339,11 +262,11 @@ namespace RootFinderGUI {
             }
         }
 
-        private void zed_MouseEnter(object sender, EventArgs e) {
-            zed.Focus();
-        }
-
         private void zed_ZoomEvent(ZedGraphControl sender, ZoomState oldState, ZoomState newState) {
+            if (null == _theLine) {
+                return;
+            }
+
             _verticalGuideLineHeight = zed.GraphPane.YAxis.Scale.MajorStep * 2;
 
             UpdateVerticalGuideLine(
